@@ -2,6 +2,12 @@ const path = require('path')
 const express = require('express')
 const hbs = require('hbs')
 const { title } = require('process')
+const geocode = require('./utils/geocode.js')
+const forecast = require('./utils/forecast.js')
+
+//Weather configuration 
+const units = 'metric'
+const lang = 'en'
 
 const app = express()
 
@@ -41,12 +47,34 @@ app.get('/help', (req, res) => {
 })
 
 app.get('/weather', (req, res) => {
-    res.send({
-        forecast: 'It is snowing',
-        location: 'Philadelphia',
-        name: 'Amir Rameshk'
+    //address reqiured
+    if (!req.query.address) { 
+        return res.send({
+            error: "You must provide an address"
+        })
+    }
+    
+    geocode(req.query.address, (error, {lat, lon, location} = {}) => {
+        if (error) {
+            return res.send({
+                error
+            })
+        }
+        forecast(units, lang, lat, lon, (error, { forecastData } = {}) => {
+            if (error) {
+                return res.send({
+                    error
+                })
+            }
+            res.send({
+                location,
+                forecastData,
+                address: req.query.address
+            })
+        })
     })
 })
+
 
 app.get('/help/*', (req, res) => {
     res.render('404', {
